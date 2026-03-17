@@ -1,0 +1,80 @@
+# X Article Sync
+
+Sync native X Article bookmarks into Obsidian as Markdown notes with YAML frontmatter.
+
+## What it does
+
+- Pulls bookmarks from X with `bird`
+- Expands only likely native article bookmarks with `bird read --json-full`
+- Detects native X Articles from the expanded payload
+- Writes notes directly into your target Obsidian folder
+- Renders article structure into Markdown, including headings, lists, blockquotes, links, cover images, and inline article images
+- Tracks processed bookmarks in a state file outside the vault
+- Dedupe checks both the state file and existing vault notes
+- Supports incremental syncs, overwrite refreshes, and deeper paged backfills
+- Supports `local` or `remote` image handling
+
+## Repo layout
+
+- `scripts/x-article-bookmarks-to-obsidian.mjs`: main importer
+- `scripts/run-x-article-sync.ps1`: local launcher pointed at the user's real vault path
+- `scripts/register-x-article-sync-task.ps1`: helper to register a daily Windows scheduled task
+
+## Usage
+
+Run the importer directly:
+
+```powershell
+node scripts/x-article-bookmarks-to-obsidian.mjs `
+  --vault-root "C:\Users\justi\Obsidian Vault" `
+  --output-folder "Commonplace\X_Articles" `
+  --state-path "C:\Users\justi\dev\x-article-sync\.codex\state\x-article-bookmarks.json" `
+  --assets-mode remote `
+  --count 200
+```
+
+Or use the preconfigured launcher:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\run-x-article-sync.ps1
+```
+
+Useful variants:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\run-x-article-sync.ps1 -DryRun -Count 20
+powershell -ExecutionPolicy Bypass -File .\scripts\run-x-article-sync.ps1 -Overwrite -Count 200 -Limit 20
+powershell -ExecutionPolicy Bypass -File .\scripts\run-x-article-sync.ps1 -All -MaxPages 20
+```
+
+## Flags
+
+- `--count <n>`: fetch a recent bookmark window when not using `--all`
+- `--all --max-pages <n>`: walk older bookmark pages for backfills
+- `--limit <n>`: stop after writing `n` article notes
+- `--overwrite`: revisit already-checked bookmarks in the selected window and refresh matching notes
+- `--dry-run`: inspect what would be imported without writing files
+- `--assets-mode remote`: keep image links remote and avoid local `_assets` folders
+- `--assets-mode local`: download article images into the vault
+
+## Automation
+
+Register a daily Windows scheduled task:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\register-x-article-sync-task.ps1
+```
+
+Choose a different daily time:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\register-x-article-sync-task.ps1 -DailyAt "09:00"
+```
+
+## Notes
+
+- Auth is loaded from `~/.config/env/twitter.env`
+- The env loader supports lines like `export KEY=value`
+- The script writes directly into the vault; Obsidian does not need to be open
+- Native X Articles are detected from expanded bookmark payloads, not preview text alone
+- The included PowerShell launcher is preconfigured for `C:\Users\justi\Obsidian Vault\Commonplace\X_Articles`
