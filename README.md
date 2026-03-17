@@ -18,7 +18,9 @@ Sync native X Article bookmarks into Obsidian as Markdown notes with YAML frontm
 
 - `scripts/x-article-bookmarks-to-obsidian.mjs`: main importer
 - `scripts/run-x-article-sync.ps1`: local launcher pointed at the user's real vault path
+- `scripts/run-x-article-sync.sh`: Linux/server launcher driven by environment variables
 - `scripts/register-x-article-sync-task.ps1`: helper to register a daily Windows scheduled task
+- `deploy/x-article-sync.env.example`: example server env file for cron
 
 ## Usage
 
@@ -37,6 +39,14 @@ Or use the preconfigured launcher:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\scripts\run-x-article-sync.ps1
+```
+
+On Linux or AWS, use the shell launcher after setting your server paths:
+
+```bash
+export X_ARTICLE_SYNC_VAULT_ROOT="/srv/obsidian-vault"
+export X_ARTICLE_SYNC_STATE_PATH="/var/lib/x-article-sync/x-article-bookmarks.json"
+./scripts/run-x-article-sync.sh
 ```
 
 Useful variants:
@@ -71,9 +81,32 @@ Choose a different daily time:
 powershell -ExecutionPolicy Bypass -File .\scripts\register-x-article-sync-task.ps1 -DailyAt "09:00"
 ```
 
+For AWS or another Linux server, keep this as a separate cron job instead of folding it into another worker. Example:
+
+```cron
+15 * * * * . /etc/x-article-sync.env && cd /srv/x-article-sync && /usr/bin/flock -n /tmp/x-article-sync.lock ./scripts/run-x-article-sync.sh >> /var/log/x-article-sync.log 2>&1
+```
+
+Suggested server layout:
+
+- Repo checkout: `/srv/x-article-sync`
+- Vault root: wherever your server-side Obsidian vault is mounted or synced
+- State file: `/var/lib/x-article-sync/x-article-bookmarks.json`
+- Env file: `/etc/x-article-sync.env`
+- Log file: `/var/log/x-article-sync.log`
+
+Why this shape:
+
+- `flock` prevents overlapping cron runs
+- state stays outside the vault
+- the job remains isolated from `/daily` and other automation
+- `remote` assets avoids writing `_assets` folders into the vault
+
 ## Notes
 
 - Auth is loaded from `~/.config/env/twitter.env`
+- If `TWITTER_AUTH_TOKEN` and `CT0` are already in the environment, the script uses those directly
+- You can also point the script at a different auth file with `--twitter-env-file` or `X_ARTICLE_SYNC_TWITTER_ENV_FILE`
 - The env loader supports lines like `export KEY=value`
 - The script writes directly into the vault; Obsidian does not need to be open
 - Native X Articles are detected from expanded bookmark payloads, not preview text alone

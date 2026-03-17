@@ -9,6 +9,7 @@ import { execFileSync } from "node:child_process";
 const DEFAULT_OUTPUT_FOLDER = path.join("Clippings", "X Articles");
 const DEFAULT_STATE_PATH = path.join(".codex", "state", "x-article-bookmarks.json");
 const DEFAULT_COUNT = 200;
+const DEFAULT_TWITTER_ENV_PATH = path.join(os.homedir(), ".config", "env", "twitter.env");
 
 function parseArgs(argv) {
   const args = {
@@ -22,6 +23,7 @@ function parseArgs(argv) {
     dryRun: false,
     limit: undefined,
     assetsMode: "local",
+    twitterEnvFile: process.env.X_ARTICLE_SYNC_TWITTER_ENV_FILE,
   };
 
   for (let i = 0; i < argv.length; i += 1) {
@@ -41,6 +43,8 @@ function parseArgs(argv) {
       args.limit = Number.parseInt(argv[++i], 10);
     } else if (arg === "--assets-mode") {
       args.assetsMode = argv[++i];
+    } else if (arg === "--twitter-env-file") {
+      args.twitterEnvFile = argv[++i];
     } else if (arg === "--all") {
       args.all = true;
     } else if (arg === "--overwrite") {
@@ -86,6 +90,7 @@ Options:
   --max-pages <n>         Stop after N pages when using --all
   --limit <n>             Stop after writing N new article notes
   --assets-mode <mode>    local downloads images into vault attachments, remote leaves image URLs hotlinked (default: local)
+  --twitter-env-file <p>  Optional path to twitter.env; env vars win if already set
   --overwrite             Rewrite note files if they already exist
   --dry-run               Show what would be written without modifying files
   --help, -h              Show this help
@@ -108,13 +113,21 @@ function expandHome(inputPath) {
   return inputPath;
 }
 
-function loadTwitterEnv() {
-  const envPath = path.join(os.homedir(), ".config", "env", "twitter.env");
-  if (!fs.existsSync(envPath)) {
-    throw new Error(`Missing Twitter env file at ${envPath}`);
+function loadTwitterEnv(envFilePath) {
+  const env = { ...process.env };
+  if (env.TWITTER_AUTH_TOKEN && env.CT0) {
+    return env;
   }
 
-  const env = { ...process.env };
+  const envPath = envFilePath
+    ? path.resolve(expandHome(envFilePath))
+    : DEFAULT_TWITTER_ENV_PATH;
+  if (!fs.existsSync(envPath)) {
+    throw new Error(
+      `Missing Twitter auth. Set TWITTER_AUTH_TOKEN and CT0 in the environment, or provide twitter.env at ${envPath}`
+    );
+  }
+
   const lines = fs.readFileSync(envPath, "utf8").split(/\r?\n/);
   for (const line of lines) {
     const trimmed = line.trim().replace(/^export\s+/, "");
@@ -140,7 +153,9 @@ function loadTwitterEnv() {
   }
 
   if (!env.TWITTER_AUTH_TOKEN || !env.CT0) {
-    throw new Error("twitter.env is missing TWITTER_AUTH_TOKEN or CT0");
+    throw new Error(
+      `Twitter auth is incomplete. Set TWITTER_AUTH_TOKEN and CT0 in the environment or fix ${envPath}`
+    );
   }
 
   return env;
@@ -814,7 +829,7 @@ async function main() {
   const outputRoot = path.resolve(vaultRoot, args.outputFolder);
   const statePath = path.resolve(vaultRoot, args.statePath);
   const syncDate = formatDateOnly(new Date());
-  const env = loadTwitterEnv();
+  const env = loadTwitterEnv(args.twitterEnvFile);
   const state = readJsonFile(statePath, {
     checkedBookmarkIds: [],
     importedArticleIds: [],
