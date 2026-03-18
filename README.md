@@ -49,6 +49,8 @@ export X_ARTICLE_SYNC_STATE_PATH="/var/lib/x-article-sync/x-article-bookmarks.js
 ./scripts/run-x-article-sync.sh
 ```
 
+By default, the Linux launcher also stages, commits, and pushes changes in the configured article folder if the target vault is a Git repo. Set `X_ARTICLE_SYNC_PUSH_VAULT_CHANGES=0` if you want write-only behavior instead.
+
 Useful variants:
 
 ```powershell
@@ -101,12 +103,15 @@ Why this shape:
 - state stays outside the vault
 - the job remains isolated from `/daily` and other automation
 - `remote` assets avoids writing `_assets` folders into the vault
+- the Linux launcher can push just the article folder without sweeping unrelated vault changes into the same commit
 
 ## Notes
 
 - Auth is loaded from `~/.config/env/twitter.env`
 - If `TWITTER_AUTH_TOKEN` and `CT0` are already in the environment, the script uses those directly
 - You can also point the script at a different auth file with `--twitter-env-file` or `X_ARTICLE_SYNC_TWITTER_ENV_FILE`
+- On Linux/server runs, set `X_ARTICLE_SYNC_PUSH_VAULT_CHANGES=0` if you do not want the launcher to commit and push vault changes
+- Optional `X_ARTICLE_SYNC_GIT_AUTHOR_NAME` and `X_ARTICLE_SYNC_GIT_AUTHOR_EMAIL` let you control the author label used for those scoped vault commits
 - The env loader supports lines like `export KEY=value`
 - The script writes directly into the vault; Obsidian does not need to be open
 - Native X Articles are detected from expanded bookmark payloads, not preview text alone
