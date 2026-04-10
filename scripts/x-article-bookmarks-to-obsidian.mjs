@@ -6,7 +6,7 @@ import os from "node:os";
 import process from "node:process";
 import { execFileSync } from "node:child_process";
 
-const DEFAULT_OUTPUT_FOLDER = path.join("Clippings", "X Articles");
+const DEFAULT_OUTPUT_FOLDER = path.join("Outputs", "X_Articles");
 const DEFAULT_STATE_PATH = path.join(".codex", "state", "x-article-bookmarks.json");
 const DEFAULT_COUNT = 200;
 const DEFAULT_TWITTER_ENV_PATH = path.join(os.homedir(), ".config", "env", "twitter.env");
@@ -587,15 +587,27 @@ function renderArticleBlocks(blocks, entityMap, mediaLookup, resolveImageUrl) {
   return renderedBlocks.join("\n\n").replace(/\n{3,}/g, "\n\n").trim();
 }
 
-function buildFrontmatter(articleData, syncDate) {
+function buildFrontmatter(articleData, syncDate, lifecycle = {}) {
   const tags = ["clippings"];
+  const date = lifecycle.date || syncDate;
+  const created = lifecycle.created || escapeYaml(syncDate);
   const lines = [
     "---",
     `title: ${escapeYaml(articleData.title)}`,
     `source: ${escapeYaml(articleData.tweetUrl)}`,
+    "type: reference",
+    `date: ${date}`,
+    "source_type: x-article",
+    "derivation: source-extract",
+    "trust_level: high",
+    "retrieve_priority: medium",
+    "source_urls:",
+    `  - ${articleData.tweetUrl}`,
+    `  - ${articleData.articleUrl}`,
     `author: ${escapeYaml(articleData.authorName)}`,
     `published: ${escapeYaml(articleData.publishedDate)}`,
-    `created: ${escapeYaml(syncDate)}`,
+    `created: ${created}`,
+    `updated: ${syncDate}`,
     `description: ${escapeYaml(articleData.previewText)}`,
     "tags:",
     ...tags.map((tag) => `  - ${tag}`),
@@ -603,6 +615,28 @@ function buildFrontmatter(articleData, syncDate) {
 
   lines.push("---");
   return lines.join("\n");
+}
+
+function readExistingFrontmatterLifecycle(notePath) {
+  if (!notePath || !fs.existsSync(notePath)) {
+    return {};
+  }
+
+  const content = fs.readFileSync(notePath, "utf8");
+  const frontmatter = content.match(/^---\r?\n([\s\S]*?)\r?\n---/);
+  if (!frontmatter) {
+    return {};
+  }
+
+  const lifecycle = {};
+  for (const key of ["date", "created"]) {
+    const match = frontmatter[1].match(new RegExp(`^${key}:\\s*(.+?)\\s*$`, "m"));
+    if (match?.[1]) {
+      lifecycle[key] = match[1].trim();
+    }
+  }
+
+  return lifecycle;
 }
 
 function parseArticlePayload(tweet) {
@@ -644,8 +678,8 @@ function parseArticlePayload(tweet) {
   };
 }
 
-function buildMarkdown(articleData, syncDate, assetRefs) {
-  const frontmatter = buildFrontmatter(articleData, syncDate);
+function buildMarkdown(articleData, syncDate, assetRefs, lifecycle = {}) {
+  const frontmatter = buildFrontmatter(articleData, syncDate, lifecycle);
   const resolveImageUrl = (url) => assetRefs?.imagePathMap?.get(url) || url;
   const renderedContent = renderArticleBlocks(
     articleData.blocks || [],
@@ -889,6 +923,8 @@ async function main() {
     }
 
     const notePath = existingNotePath || resolveNotePath(outputRoot, articleData, args.overwrite);
+    const lifecycle =
+      args.overwrite && fs.existsSync(notePath) ? readExistingFrontmatterLifecycle(notePath) : {};
     const assetRefs = await prepareArticleAssets(
       articleData,
       notePath,
@@ -896,7 +932,7 @@ async function main() {
       args.dryRun,
       args.assetsMode
     );
-    const markdown = buildMarkdown(articleData, syncDate, assetRefs);
+    const markdown = buildMarkdown(articleData, syncDate, assetRefs, lifecycle);
 
     if (args.dryRun) {
       console.log(`[dry-run] ${notePath}`);

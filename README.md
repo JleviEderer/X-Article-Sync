@@ -29,7 +29,7 @@ Run the importer directly:
 ```powershell
 node scripts/x-article-bookmarks-to-obsidian.mjs `
   --vault-root "C:\Users\justi\Obsidian Vault" `
-  --output-folder "Commonplace\X_Articles" `
+  --output-folder "Outputs\X_Articles" `
   --state-path "C:\Users\justi\dev\x-article-sync\.codex\state\x-article-bookmarks.json" `
   --assets-mode remote `
   --count 200
@@ -115,4 +115,4 @@ Why this shape:
 - The env loader supports lines like `export KEY=value`
 - The script writes directly into the vault; Obsidian does not need to be open
 - Native X Articles are detected from expanded bookmark payloads, not preview text alone
-- The included PowerShell launcher is preconfigured for `C:\Users\justi\Obsidian Vault\Commonplace\X_Articles`
+- The included PowerShell launcher is preconfigured for `C:\Users\justi\Obsidian Vault\Outputs\X_Articles`

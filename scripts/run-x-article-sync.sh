@@ -18,7 +18,7 @@ if ! command -v bird >/dev/null 2>&1; then
   exit 1
 fi
 
-OUTPUT_FOLDER="${X_ARTICLE_SYNC_OUTPUT_FOLDER:-Commonplace/X_Articles}"
+OUTPUT_FOLDER="${X_ARTICLE_SYNC_OUTPUT_FOLDER:-Outputs/X_Articles}"
 STATE_PATH="${X_ARTICLE_SYNC_STATE_PATH:-$REPO_ROOT/.codex/state/x-article-bookmarks.json}"
 ASSETS_MODE="${X_ARTICLE_SYNC_ASSETS_MODE:-remote}"
 PUSH_VAULT_CHANGES="${X_ARTICLE_SYNC_PUSH_VAULT_CHANGES:-1}"

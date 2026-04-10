@@ -16,7 +16,7 @@ $nodeScript = Join-Path $scriptDir "x-article-bookmarks-to-obsidian.mjs"
 $arguments = @(
   $nodeScript
   "--vault-root", "C:\Users\justi\Obsidian Vault"
-  "--output-folder", "Commonplace\X_Articles"
+  "--output-folder", "Outputs\X_Articles"
   "--state-path", (Join-Path $repoRoot ".codex\state\x-article-bookmarks.json")
   "--assets-mode", "remote"
 )
