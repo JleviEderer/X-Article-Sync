@@ -10,6 +10,8 @@ const DEFAULT_OUTPUT_FOLDER = path.join("Outputs", "X_Articles");
 const DEFAULT_STATE_PATH = path.join(".codex", "state", "x-article-bookmarks.json");
 const DEFAULT_COUNT = 200;
 const DEFAULT_TWITTER_ENV_PATH = path.join(os.homedir(), ".config", "env", "twitter.env");
+const BIRD_MAX_BUFFER = Number.parseInt(process.env.X_ARTICLE_SYNC_MAX_BUFFER_BYTES || "", 10)
+  || 200 * 1024 * 1024;
 
 function parseArgs(argv) {
   const args = {
@@ -181,14 +183,14 @@ function runBird(args, env) {
         output = execFileSync("cmd.exe", ["/d", "/s", "/c", command], {
           env,
           encoding: "utf8",
-          maxBuffer: 50 * 1024 * 1024,
+          maxBuffer: BIRD_MAX_BUFFER,
           stdio: ["ignore", "pipe", "pipe"],
         });
       } else {
         output = execFileSync("bird", args, {
           env,
           encoding: "utf8",
-          maxBuffer: 50 * 1024 * 1024,
+          maxBuffer: BIRD_MAX_BUFFER,
           stdio: ["ignore", "pipe", "pipe"],
         });
       }

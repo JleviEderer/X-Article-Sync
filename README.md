@@ -59,6 +59,14 @@ powershell -ExecutionPolicy Bypass -File .\scripts\run-x-article-sync.ps1 -Overw
 powershell -ExecutionPolicy Bypass -File .\scripts\run-x-article-sync.ps1 -All -MaxPages 20
 ```
 
+Backfill existing note frontmatter locally without calling X again:
+
+```powershell
+node .\scripts\backfill-x-article-frontmatter.mjs `
+  --vault-root "C:\Users\justi\Obsidian Vault" `
+  --output-folder "Outputs\X_Articles"
+```
+
 ## Flags
 
 - `--count <n>`: fetch a recent bookmark window when not using `--all`
@@ -68,6 +76,8 @@ powershell -ExecutionPolicy Bypass -File .\scripts\run-x-article-sync.ps1 -All -
 - `--dry-run`: inspect what would be imported without writing files
 - `--assets-mode remote`: keep image links remote and avoid local `_assets` folders
 - `--assets-mode local`: download article images into the vault
+
+For very large bookmark corpora, set `X_ARTICLE_SYNC_MAX_BUFFER_BYTES` if the full `bird bookmarks --all --json-full` payload exceeds the default child-process buffer.
 
 ## Automation
 
